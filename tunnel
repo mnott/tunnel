@@ -1,0 +1,108 @@
+#!/usr/bin/env python3
+# encoding: utf-8
+r"""
+
+
+Create an ssh tunnel to a remote host. This is useful for accessing a remote host
+while you are on your company's network. You can use this to access a remote
+host that is behind a firewall. It really is only a wrapper around
+
+```bash
+ssh 192.168.1.1 -N -L 3389:192.168.1.93:3389
+```
+
+because I'm lazy.
+
+# Sample
+
+tunnel to 192.168.1.93
+
+tunnel to -l 8888 -r 3389 -j 192.168.1.1 192.168.1.93
+
+"""
+#
+# Imports
+#
+import typer
+import subprocess
+
+#
+# Command Line Interface
+#
+app = typer.Typer(add_completion=False)
+
+#
+# Parse
+#
+@app.command()
+def to (
+    verbose: bool = typer.Option(False, "-v", "--verbose", help="Verbose"),
+    jumphost: str  = typer.Option("192.168.1.1", "-j", "--jumphost", help="Jump Host"),
+    localport: int  = typer.Option(3389, "-l", "--localport", help="Local Port"),
+    remoteport: int  = typer.Option(3389, "-r", "--remoteport", help="Remote Port"),
+    remotehost: str = typer.Argument(""),
+):
+    """
+    Create an ssh tunnel to a remote host.
+
+    :param verbose: bool, verbose.
+    :param jumphost: str, jump host.
+    :param localport: int, local port.
+    :param remoteport: int, remote port.
+    :param remotehost: str, remote host.
+    """
+    if verbose:
+        subprocess.run(["ssh", jumphost, "-vvvv", "-N", "-L", f"{localport}:{remotehost}:{remoteport}"])
+    else:
+        subprocess.run(["ssh", jumphost, "-N", "-L", f"{localport}:{remotehost}:{remoteport}"], stdout=subprocess.DEVNULL)
+
+
+
+#
+# Command: Doc
+#
+@app.command()
+def doc(title: str = "Tunnel", toc: bool = True):
+    """
+    Create an ssh tunnel to a remote host.
+
+    :param title: str, title of the documentation.
+    :param toc: bool, whether to include a table of contents.
+    """
+    import importlib
+    import importlib.util
+    import sys
+    import os
+    import doc2md
+
+    def import_path(path):
+        module_name = os.path.basename(path).replace("-", "_")
+        spec = importlib.util.spec_from_loader(
+            module_name,
+            importlib.machinery.SourceFileLoader(module_name, path),
+        )
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        sys.modules[module_name] = module
+        return module
+
+    mod_name = os.path.basename(__file__)
+    if mod_name.endswith(".py"):
+        mod_name = mod_name.rsplit(".py", 1)[0]
+    atitle = title or mod_name.replace("_", "-")
+    module = import_path(__file__)
+    docstr = module.__doc__
+    result = doc2md.doc2md(docstr, atitle, toc=toc, min_level=0)
+    print(result)
+
+
+#
+# Call app Function
+#
+if __name__ == "__main__":
+    try:
+        app()
+    except SystemExit as e:
+        if e.code != 0:
+            raise
+
